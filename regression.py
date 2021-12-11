@@ -3,14 +3,32 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 class Model():
-    def __init__(self, Y, X):
+    def __init__(self, Y, X, dummy=[]):
         """Multiple regression.
 
-        :param Y: Dependent (explained) variable
         :type Y: class "pandas.core.series.Series" or "pandas.core.frame.DataFrame"
+        :param Y: Dependent (explained) variable
         
-        :param X: Independent (explaining) variable(s). 
         :type X: class "pandas.core.series.Series" or "pandas.core.frame.DataFrame"
+        :param X: Independent (explaining) variable(s). 
+        
+        :type dummy: list[str]
+        :param dummy: 
+            This parameter should contain the names of columns from which you wish to convert 
+            to dummy variables. Parameter X must have the same columns too.
+            
+            Example:
+            
+            dummy = ['day']
+            
+            column 'day' contains the following categorical values.
+            ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+            
+            If dummy list is passed, the columns in the dummy list are replaced with newly created 
+            dummy variables based on categorical values.
+            
+            New columns:
+            ['day_Mon', 'day_Tue', 'day_Wed', 'day_Thu', 'day_Fri']
         """
         self._init_normal_distribution()
         self.N = len(Y)
@@ -19,12 +37,21 @@ class Model():
         # Reassign new index in case Y or X are coming from slices, which causes "matrices not aligned error"
         self.Y = pd.Series(pd.DataFrame(Y).set_index(keys=keys).iloc[:,0])
         self.X = pd.DataFrame(X).set_index(keys=keys)
+        
+        # Convert categorical values to dummy variables
+        if len(dummy) == 0:
+            pass
+        else:
+            for d in dummy:
+                self.categorical2dummy(d)
 
     def regression(self, showCorrelation=True):
         """Compute and print multiple regression results.
         
-        :param showCorrelation: Set False if you don't need to check multicollinearity, defaults to True.
         :type showCorrelation: bool
+        :param showCorrelation: 
+            Set False if you don't need to check multicollinearity, 
+            defaults to True.
         """
         
         print("Regression starts... \n")
@@ -59,6 +86,7 @@ class Model():
         V_hat = (np.linalg.inv((1/N * X.T @ X))) @ \
                     (1/(N-k-1) * X.T @ np.diag(residual**2) @ X) @ \
                     (np.linalg.inv((1/N) * X.T @ X))
+        
         # V_hat shapes 3 x 3 symmetric matrix. To get V for each coefficient, extract diagonal matrix:
         V_hat = np.diag(V_hat)
         
@@ -143,4 +171,55 @@ class Model():
             plot("CDF", 122, self.sndx, self.cdf)
             
             plt.show()
-
+            
+    def categorical2dummy(self, dummy):
+        '''Create new DataFrame-shaped independent variables (self.X) with newly created dummy columns,
+        which is to be generated from categorical values from givem dummy.
+        
+        :type dummy: str
+        :param dummy: The column name
+        '''
+        
+        df = self.X
+        
+        ### Below code creates the map of each categorical value and new column name. 
+        ###
+        ### Example:
+        ###
+        ### dummy: 'day'
+        ### each value: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+        ### 
+        ### In this case, category_map would be like this:
+        ###
+        ### categories_map = {
+        ###     'Mon': 'day_Mon',
+        ###     'Tue': 'day_Tue',
+        ###     'Wed': 'day_Wed',
+        ###     ...
+        ### }
+        
+        categories = list(df[df[dummy].duplicated() == False][dummy])
+        categories_map = {category: f'{dummy}_{category}' for category in categories}
+        
+        # For columns, replace current 'dummy' with values of 'categories_map'
+        current_cols = list(df.columns)
+        dummy_index = current_cols.index(dummy)
+        new_added_cols = [categories_map[category] for category in categories[1:]] # One of dummy variables must be dropped
+        
+        if dummy_index == len(current_cols):
+            new_cols = current_cols[:dummy_index] + new_added_cols
+        else:
+            new_cols = current_cols[:dummy_index] + new_added_cols + current_cols[dummy_index + 1:]
+            
+        # Create new columns (dummy variables) in df. All values are set to 0 initially.
+        for category in categories_map:
+            df[categories_map[category]] = 0
+            
+        # Set each dummy value to 1 based on categories in 'dummy' column
+        for idx, each_row in df.iterrows():
+            category = each_row[dummy]
+            df.at[idx, categories_map[category]] = 1
+            
+            
+        self.X = df[new_cols]
+        
