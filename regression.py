@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 class Model():
-    def __init__(self, Y, X, dummy=[]):
+    def __init__(self, Y, X, category=[]):
         """Multiple regression.
 
         :type Y: class "pandas.core.series.Series" or "pandas.core.frame.DataFrame"
@@ -12,19 +12,19 @@ class Model():
         :type X: class "pandas.core.series.Series" or "pandas.core.frame.DataFrame"
         :param X: Independent (explaining) variable(s). 
         
-        :type dummy: list[str]
-        :param dummy: 
+        :type category: list[str]
+        :param category: 
             This parameter should contain the names of columns from which you wish to convert 
             to dummy variables. Parameter X must have the same columns too.
             
             Example:
             
-            dummy = ['day']
+            category = ['day']
             
             column 'day' contains the following categorical values.
             ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
             
-            If dummy list is passed, the columns in the dummy list are replaced with newly created 
+            If category list is passed, the columns in the category list are replaced with newly created 
             dummy variables based on categorical values.
             
             New columns:
@@ -39,10 +39,10 @@ class Model():
         self.X = pd.DataFrame(X).set_index(keys=keys)
         
         # Convert categorical values to dummy variables
-        if len(dummy) == 0:
+        if len(category) == 0:
             pass
         else:
-            for d in dummy:
+            for d in category:
                 self.categorical2dummy(d)
 
     def regression(self, showCorrelation=True):
@@ -172,12 +172,12 @@ class Model():
             
             plt.show()
             
-    def categorical2dummy(self, dummy):
+    def categorical2dummy(self, category):
         '''Create new DataFrame-shaped independent variables (self.X) with newly created dummy columns,
-        which is to be generated from categorical values from givem dummy.
+        which is to be generated from categorical values from givem category.
         
-        :type dummy: str
-        :param dummy: The column name
+        :type category: str
+        :param category: The column name
         '''
         
         df = self.X
@@ -186,7 +186,7 @@ class Model():
         ###
         ### Example:
         ###
-        ### dummy: 'day'
+        ### category: 'day'
         ### each value: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
         ### 
         ### In this case, category_map would be like this:
@@ -198,27 +198,27 @@ class Model():
         ###     ...
         ### }
         
-        categories = list(df[df[dummy].duplicated() == False][dummy])
-        categories_map = {category: f'{dummy}_{category}' for category in categories}
+        categories = list(df[df[category].duplicated() == False][category])
+        categories_map = {c: f'{category}_{c}' for c in categories}
         
-        # For columns, replace current 'dummy' with values of 'categories_map'
+        # For columns, replace current 'category' with values of 'categories_map'
         current_cols = list(df.columns)
-        dummy_index = current_cols.index(dummy)
-        new_added_cols = [categories_map[category] for category in categories[1:]] # One of dummy variables must be dropped
+        category_index = current_cols.index(category)
+        new_added_cols = [categories_map[c] for c in categories[1:]] # One of dummy variables must be dropped
         
-        if dummy_index == len(current_cols):
-            new_cols = current_cols[:dummy_index] + new_added_cols
+        if category_index == len(current_cols):
+            new_cols = current_cols[:category_index] + new_added_cols
         else:
-            new_cols = current_cols[:dummy_index] + new_added_cols + current_cols[dummy_index + 1:]
+            new_cols = current_cols[:category_index] + new_added_cols + current_cols[category_index + 1:]
             
         # Create new columns (dummy variables) in df. All values are set to 0 initially.
-        for category in categories_map:
-            df[categories_map[category]] = 0
+        for c in categories_map:
+            df[categories_map[c]] = 0
             
         # Set each dummy value to 1 based on categories in 'dummy' column
         for idx, each_row in df.iterrows():
-            category = each_row[dummy]
-            df.at[idx, categories_map[category]] = 1
+            c = each_row[category]
+            df.at[idx, categories_map[c]] = 1
             
             
         self.X = df[new_cols]
