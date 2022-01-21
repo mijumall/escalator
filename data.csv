@@ -1,4 +1,4 @@
-id,ride_style,speed,poster,staff,time,is_female,is_assistant,is_raining,day,week,total_passenger,total_passenger_per_minute
+id,ride_style,speed,poster,staff,time,is_female,is_staff,is_raining,day,week,total_passenger,total_passenger_per_minute
 1,ls,0,0,0,40,1,0,0,Mon,1,351,15
 2,ls,0,0,0,40,0,0,0,Mon,1,351,15
 3,ls,0,0,0,40,0,0,0,Mon,1,351,15
